@@ -50,9 +50,10 @@ class AccountService:
         self.queue = queue
         # network layer
         op = { 'account': 123, 'type': 'deposit', 'value': 200 }
-        def response(value: any):
-            value.to_bytes()
-            sock.sendall(value)
+        
+    def response(value: any):
+        value.to_bytes()
+        sock.sendall(value)
         self.queue.put((op, response))
         # service layer
         obj, response = self.queue.get()

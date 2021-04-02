@@ -38,11 +38,19 @@ class DataReceiver(Thread):
                 print('Received #', threading.get_ident(), repr(alldata))
                 
                 # client data to string
-                dataJSON = loads(str(alldata.decode('utf-8'))
-
-
+                operation = loads(str(alldata.decode('utf-8'))
+                sendToQueue(operation)
 
                 #conn.sendall(alldata)
+    def sendToQueue(operation: object):
+
+        account_number = operation["account_number"]
+        operation_type = operation["type"]
+        value = operation["value"]
+
+        index = account_number % len(queues)
+        t = AccountService(target=func, args=((value, account_number, operation_type, queues[index])))
+        t.start()
 
     def do_operation(value: int, account_number: int, operation_type: str, q: queue.Queue):
         operation = {
@@ -57,10 +65,10 @@ class DataReceiver(Thread):
         print('-----------------------')
         q.put((operation, response)) 
 
-    def run(func, operation_type, value, account_number):
-        index = account_number % len(queues)
-        t = AccountService(target=func, args=((value, account_number, operation_type, queues[index])))
-        t.start()
+    # def run(func, operation_type, value, account_number):
+    #     index = account_number % len(queues)
+    #     t = AccountService(target=func, args=((value, account_number, operation_type, queues[index])))
+    #     t.start()
 
 
 

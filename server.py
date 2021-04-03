@@ -16,15 +16,12 @@ database = AccountDatabase()
 queues = []
 
 class DataReceiver(Thread):
-   def __init__(self, socket):
-      self.socket = socket
+   def __init__(self, conn, addr):
+      self.conn = conn
+      self.addr = addr
       super().__init__()
 
    def run(self) -> None:
-      while True:
-         # establish connection with client
-         conn, addr = self.socket.accept()
-
          with conn:
                # lock acquired by client
                print('Connected by', addr)
@@ -39,16 +36,18 @@ class DataReceiver(Thread):
                
                # client data to string
                operation = json.loads(alldata.decode('utf-8'))
-               # sendToQueue(operation)
-               account_number = operation["account_number"]
-               operation_type = operation["type"]
-               value = operation["value"]
+               sendToQueue(operation)
+               # conn.sendall(alldata)
 
-               index = account_number % len(queues)
-               t = AccountService(target=func, args=((value, account_number, operation_type, queues[index])))
-               t.start()
-               
-               conn.sendall(alldata)
+   def sendToQueue(operation: object):
+      account_number = operation["account_number"]
+      operation_type = operation["type"]
+      value = operation["value"]
+
+      index = account_number % len(queues)
+      t = AccountService(target=func, args=((value, account_number, operation_type, queues[index])))
+      t.start()
+
    
    def do_operation(value: int, account_number: int, operation_type: str, q: queue.Queue):
       operation = {
@@ -81,8 +80,12 @@ def Main():
       s.listen()
       print(f'Listening on {HOST}:{PORT}')
 
+      while True:
+         # establish connection with client
+         conn, addr = s.accept()
+
       for i in range(multiprocessing.cpu_count()):
-         DataReceiver(s).start()
+         DataReceiver(conn, addr).start()
 
 Main()
 

@@ -45,13 +45,18 @@ class DataReceiver(Thread):
       value = operation["value"]
 
       def response(value: object):
-         print(operation)
+         msg = json.dumps(value)
+         self.conn.send(msg)
+         self.conn.close()
+         
          print('result', value)
          print('-----------------------')
          # send_to_client
 
       index = account_number % len(queues)
       queues[index].put((operation, response)) 
+   
+   
 
 class Server(Thread):
 

@@ -1,4 +1,5 @@
 import sys
+import time
 import json
 import socket
 import threading
@@ -37,15 +38,17 @@ class Client:
 #             alldata += data
 #         print(f'Thread #{threading.get_ident()} - received', repr(alldata))
 
-account_number = int(sys.argv[1]) or 0
-op_type = sys.argv[2] or 'deposit'
-value = float(sys.argv[3]) or 100
-operation = {
-    'account_number': account_number,
-    'type': op_type,
-    'value': value
-}
-Client(operation)
+while True:
+    account_number = int(sys.argv[1]) or 0
+    op_type = sys.argv[2] or 'deposit'
+    value = float(sys.argv[3]) or 100
+    operation = {
+        'account_number': account_number,
+        'type': op_type,
+        'value': value
+    }
+    Client(operation)
+    time.sleep(1)
 
 # Thread(target=send_operation, args=((operation,))).start()
 

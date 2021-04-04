@@ -10,10 +10,10 @@ import queue
 import json
 import socket
 
-HOST = '127.0.0.1'
-PORT = 3333
-database = AccountDatabase()
-queues = []
+# HOST = '127.0.0.1'
+# PORT = 3333
+# database = AccountDatabase()
+# queues = []
 
 class DataReceiver(Thread):
    def __init__(self, conn, addr):
@@ -51,33 +51,76 @@ class DataReceiver(Thread):
          # send_to_client
 
       index = account_number % len(queues)
-      queues[index].put((operation, response))
+      queues[index].put((operation, response)) 
+
+class Server(Thread):
+
+   def __init__(self, host, port):
+      self.HOST = host #'127.0.0.1'
+      self.PORT = port #3333
+      self.database = AccountDatabase()
+      self.queues = []
+
+      super().__init__()
    
+   def init_queues_and_account_services(self):
+      # create queues, AccoutServices and database
+      for i in range(multiprocessing.cpu_count()):
+         self.queues.append(queue.Queue())
+         AccountService(self.queues[i], self.database).start()
+   
+   def open_socket_to_listen_requests(self):
+       with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+         s.bind((self.HOST, self.PORT))
+         s.listen()
+         print(f'Listening on {self.HOST}:{self.PORT}')
+
+         while True:
+            # establish connection with client
+            conn, addr = s.accept()
+            send_to_some_data_receiver(conn, addr)
+
+   def run(self) -> None:
+      self.init_queues_and_account_services()
+      self.open_socket_to_listen_requests()
+   
+   def stop(self):
+        self.__tcpListener.shutdown(socket.SHUT_RDWR)
+        time.sleep(1)
+        print("Thread: User searching will quit NOW!")
+
+   
+   
+   def send_to_some_data_receiver(conn, addr):
+      t = DataReceiver(conn, addr)
+      t.start()
+
+
 # def run(func, operation_type, value, account_number):
 #     index = account_number % len(queues)
 #     t = AccountService(target=func, args=((value, account_number, operation_type, queues[index])))
 #     t.start()
 
-def send_to_some_data_receiver(conn, addr):
-   t = DataReceiver(conn, addr)
-   t.start()
+
    
 def Main():
+   HOST = '127.0.0.1'
+   PORT = 3333  
+   Server(HOST, PORT).start()
+   # # create queues, AccoutServices and database
+   # for i in range(multiprocessing.cpu_count()):
+   #    queues.append(queue.Queue())
+   #    AccountService(queues[i], database).start()
 
-   # create queues, AccoutServices and database
-   for i in range(multiprocessing.cpu_count()):
-      queues.append(queue.Queue()) 
-      AccountService(queues[i], database).start()
+   # with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+   #    s.bind((HOST, PORT))
+   #    s.listen()
+   #    print(f'Listening on {HOST}:{PORT}')
 
-   with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-      s.bind((HOST, PORT))
-      s.listen()
-      print(f'Listening on {HOST}:{PORT}')
-
-      while True:
-         # establish connection with client
-         conn, addr = s.accept()
-         send_to_some_data_receiver(conn, addr)
+   #    while True:
+   #       # establish connection with client
+   #       conn, addr = s.accept()
+   #       send_to_some_data_receiver(conn, addr)
 
 Main()
 

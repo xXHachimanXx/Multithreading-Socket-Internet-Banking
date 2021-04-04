@@ -16,45 +16,42 @@ import socket
 # queues = []
 
 class DataReceiver(Thread):
-   def __init__(self, conn, addr):
+   def __init__(self, conn, addr, queues):
       self.conn = conn
       self.addr = addr
+      self.queues = queues
       super().__init__()
 
    def run(self) -> None:
       with self.conn:
          # lock acquired by client
          print('Connected by', self.addr)
-         alldata = bytes()
-         while True:
-            data = self.conn.recv(1024)
-            if not data:
-               break
-            alldata += data
          
-         print('Received #', threading.get_ident(), repr(alldata))
+         data = self.conn.recv(1024)
+
+         print('Received #', threading.get_ident(), data.decode('utf-8'))
          
          # client data to string
-         operation = json.loads(alldata.decode('utf-8'))
-         send_to_queue(operation)
+         operation = json.loads(data.decode('utf-8'))
+         self.send_to_queue(operation)
          # conn.sendall(alldata)
 
-   def send_to_queue(operation: object):
+   def send_to_queue(self, operation: object):
       account_number = operation["account_number"]
       operation_type = operation["type"]
       value = operation["value"]
 
       def response(value: object):
          msg = json.dumps(value)
-         self.conn.send(msg)
-         self.conn.close()
-         
+
          print('result', value)
          print('-----------------------')
+         
+         self.conn.sendall(msg.encode('utf-8'))
          # send_to_client
 
-      index = account_number % len(queues)
-      queues[index].put((operation, response)) 
+      index = account_number % len(self.queues)
+      self.queues[index].put((operation, response)) 
    
    
 
@@ -83,7 +80,7 @@ class Server(Thread):
          while True:
             # establish connection with client
             conn, addr = s.accept()
-            send_to_some_data_receiver(conn, addr)
+            self.send_to_some_data_receiver(conn, addr)
 
    def run(self) -> None:
       self.init_queues_and_account_services()
@@ -96,8 +93,8 @@ class Server(Thread):
 
    
    
-   def send_to_some_data_receiver(conn, addr):
-      t = DataReceiver(conn, addr)
+   def send_to_some_data_receiver(self, conn, addr):
+      t = DataReceiver(conn, addr, self.queues)
       t.start()
 
 

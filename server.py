@@ -23,18 +23,17 @@ class DataReceiver(Thread):
       super().__init__()
 
    def run(self) -> None:
-      with self.conn:
-         # lock acquired by client
-         print('Connected by', self.addr)
-         
-         data = self.conn.recv(1024)
+      # lock acquired by client
+      print('Connected by', self.addr)
+      
+      data = self.conn.recv(1024)
 
-         print('Received #', threading.get_ident(), data.decode('utf-8'))
-         
-         # client data to string
-         operation = json.loads(data.decode('utf-8'))
-         self.send_to_queue(operation)
-         # conn.sendall(alldata)
+      print('Received #', threading.get_ident(), data.decode('utf-8'))
+      
+      # client data to string
+      operation = json.loads(data.decode('utf-8'))
+      self.send_to_queue(operation)
+      # conn.sendall(alldata)
 
    def send_to_queue(self, operation: object):
       account_number = operation["account_number"]
@@ -48,6 +47,7 @@ class DataReceiver(Thread):
          print('-----------------------')
          
          self.conn.sendall(msg.encode('utf-8'))
+         self.conn.close()
          # send_to_client
 
       index = account_number % len(self.queues)
